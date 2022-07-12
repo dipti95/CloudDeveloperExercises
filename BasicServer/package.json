@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dipti95/CloudDeveloperEcercises/BasicServer.git"
+    "url": "git+https://github.com/dipti95/CloudDeveloperEcercises/tree/main/BasicServer"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/dipti95/CloudDeveloperEcercises/BasicServer/issues"
+    "url": "https://github.com/dipti95/CloudDeveloperEcercises/tree/main/BasicServer/issues"
   },
-  "homepage": "https://github.com/dipti95/CloudDeveloperEcercises/BasicServer#readme",
+  "homepage": "https://github.com/dipti95/CloudDeveloperEcercises/tree/main/BasicServer#readme",
   "devDependencies": {
     "@types/bluebird": "^3.5.33",
     "@types/chai": "^4.2.14",
