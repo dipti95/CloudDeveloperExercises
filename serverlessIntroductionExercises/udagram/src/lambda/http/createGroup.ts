@@ -7,6 +7,7 @@ import {
 import "source-map-support/register"
 
 import * as AWS from "aws-sdk"
+import * as uuid from "uuid"
 
 const docClient = new AWS.DynamoDB.DocumentClient()
 
@@ -15,22 +16,30 @@ const groupsTable = process.env.GROUPS_TABLE
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  console.log("Caller event", event)
+  console.log("Proccessing event", event)
+  const itemId = uuid.v4()
 
-  const result = await docClient
-    .scan({
+  const parsedBody = JSON.parse(event.body)
+
+  const newItem = {
+    id: itemId,
+    ...parsedBody,
+  }
+
+  await docClient
+    .put({
       TableName: groupsTable,
+      Item: newItem,
     })
     .promise()
-  const items = result.Items
 
   return {
-    statusCode: 200,
+    statusCode: 201,
     headers: {
       "Access-Control-Allow-Origin": "*",
     },
     body: JSON.stringify({
-      items: items,
+      newItem,
     }),
   }
 }
