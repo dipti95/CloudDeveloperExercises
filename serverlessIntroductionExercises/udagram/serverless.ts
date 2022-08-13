@@ -15,13 +15,29 @@ const serverlessConfiguration: AWS = {
 
     environment: {
       GROUPS_TABLE: "Groups-${self:provider.stage}",
+      IMAGES_TABLE: "Images-${self:provider.stage}",
+      IMAGE_ID_INDEX: "ImageIdIndex",
     },
     iamRoleStatements: [
       {
         Effect: "Allow",
-        Action: ["dynamodb:Scan", "dynamodb:PutItem"],
+        Action: ["dynamodb:Scan", "dynamodb:PutItem", "dynamodb:GetItem"],
         Resource: [
           "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GROUPS_TABLE}",
+        ],
+      },
+      {
+        Effect: "Allow",
+        Action: ["dynamodb:Query"],
+        Resource: [
+          "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}",
+        ],
+      },
+      {
+        Effect: "Allow",
+        Action: ["dynamodb:Query"],
+        Resource: [
+          "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}/index/${self:provider.environment.IMAGE_ID_INDEX}",
         ],
       },
     ],
@@ -98,6 +114,29 @@ const serverlessConfiguration: AWS = {
         },
       ],
     },
+    GetImages: {
+      handler: "src/lambda/http/getImages.handler",
+      events: [
+        {
+          http: {
+            method: "get",
+            path: "/groups/{groupId}/images",
+          },
+        },
+      ],
+    },
+    GetImage: {
+      handler: "src/lambda/http/getImage.handler",
+      events: [
+        {
+          http: {
+            method: "get",
+            path: "images/{imageId}",
+            cors: true,
+          },
+        },
+      ],
+    },
   },
   resources: {
     Resources: {
@@ -120,6 +159,40 @@ const serverlessConfiguration: AWS = {
           KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
           BillingMode: "PAY_PER_REQUEST",
           TableName: "${self:provider.environment.GROUPS_TABLE}",
+        },
+      },
+      ImagesDynamoDBTable: {
+        Type: "AWS::DynamoDB::Table",
+        Properties: {
+          AttributeDefinitions: [
+            { AttributeName: "groupId", AttributeType: "S" },
+            { AttributeName: "timestamp", AttributeType: "S" },
+            { AttributeName: "imageId", AttributeType: "S" },
+          ],
+          KeySchema: [
+            { AttributeName: "groupId", KeyType: "HASH" },
+            {
+              AttributeName: "timestamp",
+              KeyType: "RANGE",
+            },
+          ],
+          GlobalSecondaryIndexes: [
+            {
+              IndexName: "${self:provider.environment.IMAGE_ID_INDEX}",
+              KeySchema: [
+                {
+                  AttributeName: "imageId",
+                  KeyType: "HASH",
+                },
+              ],
+              Projection: {
+                ProjectionType: "ALL",
+              },
+            },
+          ],
+          BillingMode: "PAY_PER_REQUEST",
+
+          TableName: "${self:provider.environment.IMAGES_TABLE}",
         },
       },
     },
