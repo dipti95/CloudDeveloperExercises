@@ -28,7 +28,7 @@ const serverlessConfiguration: AWS = {
       },
       {
         Effect: "Allow",
-        Action: ["dynamodb:Query"],
+        Action: ["dynamodb:Query", "dynamodb:PutItem"],
         Resource: [
           "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}",
         ],
@@ -133,6 +133,30 @@ const serverlessConfiguration: AWS = {
             method: "get",
             path: "images/{imageId}",
             cors: true,
+          },
+        },
+      ],
+    },
+    CreateImage: {
+      handler: "src/lambda/http/createImage.handler",
+      events: [
+        {
+          http: {
+            method: "post",
+            path: "/groups/{groupId}/images",
+            cors: true,
+            request: {
+              schemas: {
+                "application/json": "${file(models/create-image-request.json)}",
+              },
+            },
+
+            // reqValidatorName: "RequestBodyValidator",
+            // documentation: {
+            //   summary: "Create a new group",
+            //   description: "Create a new group",
+            //   requestModels: "'application/json': GroupRequest",
+            // },
           },
         },
       ],
