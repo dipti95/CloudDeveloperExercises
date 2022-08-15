@@ -17,6 +17,8 @@ const serverlessConfiguration: AWS = {
       GROUPS_TABLE: "Groups-${self:provider.stage}",
       IMAGES_TABLE: "Images-${self:provider.stage}",
       IMAGE_ID_INDEX: "ImageIdIndex",
+      IMAGES_S3_BUCKET: "udagram-images-553704514996-${self:provider.stage}",
+      SIGNED_URL_EXPIRATION: "300",
     },
     iamRoleStatements: [
       {
@@ -33,12 +35,19 @@ const serverlessConfiguration: AWS = {
           "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}",
         ],
       },
+
       {
         Effect: "Allow",
         Action: ["dynamodb:Query"],
         Resource: [
           "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}/index/${self:provider.environment.IMAGE_ID_INDEX}",
         ],
+      },
+      {
+        Effect: "Allow",
+        Action: ["s3:PutObject", "s3:GetObject"],
+        Resource:
+          "arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*",
       },
     ],
   },
@@ -217,6 +226,52 @@ const serverlessConfiguration: AWS = {
           BillingMode: "PAY_PER_REQUEST",
 
           TableName: "${self:provider.environment.IMAGES_TABLE}",
+        },
+      },
+      AttachmentsBucket: {
+        Type: "AWS::S3::Bucket",
+        Properties: {
+          BucketName: "${self:provider.environment.IMAGES_S3_BUCKET}",
+          // NotificationConfiguration: {
+          //   LambdaConfigurations: [
+          //     {
+          //       Event: "s3:ObjectCreated:*",
+          //       Function: {
+          //         GetAtt: "s3SendNotificationsLambdaFunction.Arn",
+          //       },
+          //     },
+          //   ],
+          // },
+          CorsConfiguration: {
+            CorsRules: [
+              {
+                AllowedOrigins: ["*"],
+                AllowedHeaders: ["*"],
+                AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
+                MaxAge: 3000,
+              },
+            ],
+          },
+        },
+      },
+      BucketPolicy: {
+        Type: "AWS::S3::BucketPolicy",
+        Properties: {
+          Bucket: {
+            Ref: "AttachmentsBucket",
+          },
+          PolicyDocument: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Action: "s3:GetObject",
+                Effect: "Allow",
+                Principal: "*",
+                Resource:
+                  "arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*",
+              },
+            ],
+          },
         },
       },
     },
