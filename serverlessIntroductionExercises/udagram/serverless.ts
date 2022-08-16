@@ -1,7 +1,5 @@
 import type { AWS } from "@serverless/typescript"
 
-//import GroupsTable from "@functions/getGroups"
-
 const serverlessConfiguration: AWS = {
   service: "serverless-udagram-app",
   frameworkVersion: "3",
@@ -17,7 +15,7 @@ const serverlessConfiguration: AWS = {
       GROUPS_TABLE: "Groups-${self:provider.stage}",
       IMAGES_TABLE: "Images-${self:provider.stage}",
       IMAGE_ID_INDEX: "ImageIdIndex",
-      IMAGES_S3_BUCKET: "udagram-images-553704514996-${self:provider.stage}",
+      IMAGES_S3_BUCKET: "udagram-images-760612056946-${self:provider.stage}",
       SIGNED_URL_EXPIRATION: "300",
     },
     iamRoleStatements: [
@@ -52,40 +50,6 @@ const serverlessConfiguration: AWS = {
     ],
   },
 
-  // custom: {
-  //   documentation: {
-  //     api: {
-  //       info: {
-  //         version: "v1.0.0",
-  //         title: "Udagram API",
-  //         description: "severless application for image sharing",
-  //       },
-  //     },
-  //     models: [
-  //       {
-  //         name: "GroupRequest",
-  //         contentType: "application/json",
-  //         schema: "${file(models/create-group-request.json)}",
-  //       },
-  //     ],
-  //   },
-  // },
-  // import the function via paths
-  // functions: { GroupsTable },
-  // package: { individually: true },
-
-  // custom: {
-  //   esbuild: {
-  //     bundle: true,
-  //     minify: false,
-  //     sourcemap: true,
-
-  //     target: "node14",
-  //     define: { "require.resolve": undefined },
-  //     platform: "node",
-  //     concurrency: 10,
-  //   },
-  // },
   functions: {
     GetGroups: {
       handler: "src/lambda/http/getGroups.handler",
@@ -159,16 +123,12 @@ const serverlessConfiguration: AWS = {
                 "application/json": "${file(models/create-image-request.json)}",
               },
             },
-
-            // reqValidatorName: "RequestBodyValidator",
-            // documentation: {
-            //   summary: "Create a new group",
-            //   description: "Create a new group",
-            //   requestModels: "'application/json': GroupRequest",
-            // },
           },
         },
       ],
+    },
+    SendUploadNotifications: {
+      handler: "src/lambda/s3/sendNotifications.handler",
     },
   },
   resources: {
@@ -232,16 +192,16 @@ const serverlessConfiguration: AWS = {
         Type: "AWS::S3::Bucket",
         Properties: {
           BucketName: "${self:provider.environment.IMAGES_S3_BUCKET}",
-          // NotificationConfiguration: {
-          //   LambdaConfigurations: [
-          //     {
-          //       Event: "s3:ObjectCreated:*",
-          //       Function: {
-          //         GetAtt: "s3SendNotificationsLambdaFunction.Arn",
-          //       },
-          //     },
-          //   ],
-          // },
+          NotificationConfiguration: {
+            LambdaConfigurations: [
+              {
+                Event: "s3:ObjectCreated:*",
+                Function: {
+                  GetAtt: "SendUploadNotificationsLambdaFunction.Arn",
+                },
+              },
+            ],
+          },
           CorsConfiguration: {
             CorsRules: [
               {
@@ -252,6 +212,22 @@ const serverlessConfiguration: AWS = {
               },
             ],
           },
+        },
+      },
+
+      SendUploadNotificationsPermission: {
+        Type: "AWS::Lambda::Permission",
+        Properties: {
+          FunctionName: {
+            Ref: "SendUploadNotificationsLambdaFunction",
+          },
+          Principal: "s3.amazonaws.com",
+          Action: "lambda:InvokeFunction",
+          SourceAccount: {
+            Ref: "AWS::AccountId",
+          },
+          SourceArn:
+            "arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}",
         },
       },
       BucketPolicy: {
