@@ -16,7 +16,7 @@ const serverlessConfiguration: AWS = {
       IMAGES_TABLE: "Images-${self:provider.stage}",
       IMAGE_ID_INDEX: "ImageIdIndex",
       CONNECTIONS_TABLE: "Connections-${self:provider.stage}",
-      IMAGES_S3_BUCKET: "udagram-images-760612056946-${self:provider.stage}",
+      IMAGES_S3_BUCKET: "udagram-images-496611468370-${self:provider.stage}",
       SIGNED_URL_EXPIRATION: "300",
     },
     iamRoleStatements: [
@@ -328,7 +328,7 @@ const serverlessConfiguration: AWS = {
         Type: "AWS::Elasticsearch::Domain",
         Properties: {
           ElasticsearchVersion: "6.3",
-          DomainName: "images-search-123${self:provider.stage}",
+          DomainName: "images-search-${self:provider.stage}",
           ElasticsearchClusterConfig: {
             DedicatedMasterEnabled: false,
             InstanceCount: "1",
@@ -354,7 +354,7 @@ const serverlessConfiguration: AWS = {
 
                 //Resource: "*",
                 Resource:
-                  "arn:aws:es:${self:provider.region}:${AWS::AccountId}:domain/images-search-123${self:provider.stage}/*",
+                  "!Sub arn:aws:es:${self:provider.region}:${AWS::AccountId}:domain/images-search-${self:provider.stage}/*",
               },
             ],
           },
