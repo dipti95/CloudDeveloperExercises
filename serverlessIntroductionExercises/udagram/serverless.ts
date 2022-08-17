@@ -15,6 +15,7 @@ const serverlessConfiguration: AWS = {
       GROUPS_TABLE: "Groups-${self:provider.stage}",
       IMAGES_TABLE: "Images-${self:provider.stage}",
       IMAGE_ID_INDEX: "ImageIdIndex",
+      CONNECTIONS_TABLE: "Connections-${self:provider.stage}",
       IMAGES_S3_BUCKET: "udagram-images-760612056946-${self:provider.stage}",
       SIGNED_URL_EXPIRATION: "300",
     },
@@ -46,6 +47,13 @@ const serverlessConfiguration: AWS = {
         Action: ["s3:PutObject", "s3:GetObject"],
         Resource:
           "arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*",
+      },
+      {
+        Effect: "Allow",
+        Action: ["dynamodb:Scan", "dynamodb:PutItem", "dynamodb:DeleteItem"],
+
+        Resource:
+          "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}",
       },
     ],
   },
@@ -128,7 +136,48 @@ const serverlessConfiguration: AWS = {
       ],
     },
     SendUploadNotifications: {
+      environment: {
+        STAGE: "${self:provider.stage}",
+        API_ID: {
+          Ref: "WebsocketsApi",
+        },
+      },
       handler: "src/lambda/s3/sendNotifications.handler",
+    },
+    ConnectHandler: {
+      handler: "src/lambda/websocket/connect.handler",
+      events: [
+        {
+          websocket: {
+            route: "$connect",
+          },
+        },
+      ],
+    },
+    DisconnectHandler: {
+      handler: "src/lambda/websocket/disconnect.handler",
+      events: [
+        {
+          websocket: {
+            route: "$disconnect",
+          },
+        },
+      ],
+    },
+    SyncWithElasticsearch: {
+      // environment:{
+      //   ES_ENDPOINT: "!GetAtt ImagesSearch.DomainEndpoint"
+      // },
+      handler: "src/lambda/dynamoDb/elasticSearchSync.handler",
+      events: [
+        {
+          stream: {
+            type: "dynamodb",
+            arn: { "Fn::GetAtt": ["ImagesDynamoDBTable", "StreamArn"] },
+            //arn: "!GetAtt ImagesDynamoDBTable.StreamArn",
+          },
+        },
+      ],
     },
   },
   resources: {
@@ -184,8 +233,30 @@ const serverlessConfiguration: AWS = {
             },
           ],
           BillingMode: "PAY_PER_REQUEST",
+          StreamSpecification: {
+            StreamViewType: "NEW_IMAGE",
+          },
 
           TableName: "${self:provider.environment.IMAGES_TABLE}",
+        },
+      },
+      WebSocketConnectionsDynamoDBTable: {
+        Type: "AWS::DynamoDB::Table",
+        Properties: {
+          AttributeDefinitions: [
+            {
+              AttributeName: "id",
+              AttributeType: "S",
+            },
+          ],
+          KeySchema: [
+            {
+              AttributeName: "id",
+              KeyType: "HASH",
+            },
+          ],
+          BillingMode: "PAY_PER_REQUEST",
+          TableName: "${self:provider.environment.CONNECTIONS_TABLE}",
         },
       },
       AttachmentsBucket: {
@@ -197,7 +268,10 @@ const serverlessConfiguration: AWS = {
               {
                 Event: "s3:ObjectCreated:*",
                 Function: {
-                  GetAtt: "SendUploadNotificationsLambdaFunction.Arn",
+                  "Fn::GetAtt": [
+                    "SendUploadNotificationsLambdaFunction",
+                    "Arn",
+                  ],
                 },
               },
             ],
@@ -245,6 +319,42 @@ const serverlessConfiguration: AWS = {
                 Principal: "*",
                 Resource:
                   "arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*",
+              },
+            ],
+          },
+        },
+      },
+      ImagesSearch: {
+        Type: "AWS::Elasticsearch::Domain",
+        Properties: {
+          ElasticsearchVersion: "6.3",
+          DomainName: "images-search-123${self:provider.stage}",
+          ElasticsearchClusterConfig: {
+            DedicatedMasterEnabled: false,
+            InstanceCount: "1",
+            ZoneAwarenessEnabled: "false",
+            InstanceType: "t2.small.elasticsearch",
+          },
+          EBSOptions: {
+            EBSEnabled: true,
+            Iops: 0,
+            VolumeSize: 10,
+            VolumeType: "gp2",
+          },
+
+          AccessPolicies: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Effect: "Allow",
+                Principal: {
+                  AWS: "*",
+                },
+                Action: "es:ESHttp*",
+
+                //Resource: "*",
+                Resource:
+                  "arn:aws:es:${self:provider.region}:${AWS::AccountId}:domain/images-search-123${self:provider.stage}/*",
               },
             ],
           },
