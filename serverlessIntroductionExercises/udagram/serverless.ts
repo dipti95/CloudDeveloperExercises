@@ -165,9 +165,9 @@ const serverlessConfiguration: AWS = {
       ],
     },
     SyncWithElasticsearch: {
-      // environment:{
-      //   ES_ENDPOINT: "!GetAtt ImagesSearch.DomainEndpoint"
-      // },
+      environment: {
+        ES_ENDPOINT: { "Fn::GetAtt": ["ImagesSearch", "DomainEndpoint"] },
+      },
       handler: "src/lambda/dynamoDb/elasticSearchSync.handler",
       events: [
         {
@@ -351,10 +351,15 @@ const serverlessConfiguration: AWS = {
                   AWS: "*",
                 },
                 Action: "es:ESHttp*",
+                Condition: {
+                  IpAddress: {
+                    "aws:SourceIp": "<Your-ip>/32",
+                  },
+                },
 
-                //Resource: "*",
-                Resource:
-                  "!Sub arn:aws:es:${self:provider.region}:${AWS::AccountId}:domain/images-search-${self:provider.stage}/*",
+                Resource: "*",
+                //Resource:
+                //"!Sub arn:aws:es:${self:provider.region}:${AWS::AccountId}:domain/images-search-${self:provider.stage}/*",
               },
             ],
           },

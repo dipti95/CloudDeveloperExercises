@@ -12,14 +12,18 @@
   "dependencies": {
     "@middy/core": "^2.5.3",
     "@middy/http-json-body-parser": "^2.5.3",
+    "@types/elasticsearch": "^5.0.40",
     "aws-sdk": "^2.1193.0",
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
     "@serverless/typescript": "^3.0.0",
     "@types/aws-lambda": "^8.10.71",
+    "@types/http-aws-es": "^6.0.2",
     "@types/node": "^14.14.25",
+    "elasticsearch": "^15.4.1",
     "esbuild": "^0.14.11",
+    "http-aws-es": "^6.0.0",
     "json-schema-to-ts": "^1.5.0",
     "serverless": "^3.0.0",
     "serverless-aws-documentation": "^1.1.0",
