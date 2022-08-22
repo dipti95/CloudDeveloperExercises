@@ -7,13 +7,20 @@ const esHost = process.env.ES_ENDPOINT
 
 const es = new elasticsearch.Client({
   hosts: [esHost],
-  connectionClass: httpAwsEs,
+  connectionClass: require("http-aws-es"),
 })
+// export const handler = (event) => {
+//   console.log("Processing events batch from DynamoDB", JSON.stringify(event))
+//   console.log("testing" + esHost)
+
+//   console.log("last testing " + es)
+// }
 
 export const handler: DynamoDBStreamHandler = async (
   event: DynamoDBStreamEvent
 ) => {
   console.log("Processing events batch from DynamoDB", JSON.stringify(event))
+  console.log(es)
 
   for (const record of event.Records) {
     console.log("Processing record", JSON.stringify(record))
@@ -32,12 +39,16 @@ export const handler: DynamoDBStreamHandler = async (
       title: newItem.title.S,
       timestamp: newItem.timestamp.S,
     }
-
-    await es.index({
-      index: "images-index",
-      type: "images",
-      id: imageId,
-      body,
-    })
+    try {
+      console.log("Attempting to add index ", event)
+      await es.index({
+        index: "images-index",
+        type: "images",
+        id: imageId,
+        body,
+      })
+    } catch (e) {
+      console.log("Failed to ass index", JSON.stringify(e))
+    }
   }
 }
