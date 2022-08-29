@@ -16,8 +16,11 @@ const serverlessConfiguration: AWS = {
       IMAGES_TABLE: "Images-${self:provider.stage}",
       IMAGE_ID_INDEX: "ImageIdIndex",
       CONNECTIONS_TABLE: "Connections-${self:provider.stage}",
-      IMAGES_S3_BUCKET: "udagram-images-496611468370-${self:provider.stage}",
+      IMAGES_S3_BUCKET: "udagram-images-557831573860-${self:provider.stage}",
       SIGNED_URL_EXPIRATION: "300",
+      topicName: "imagesTopic-${self:provider.stage}",
+      THUMBNAILS_S3_BUCKET:
+        "serverless-udagram-458962998840thumbnail-${self:provider.stage}",
     },
     iamRoleStatements: [
       {
@@ -54,6 +57,12 @@ const serverlessConfiguration: AWS = {
 
         Resource:
           "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}",
+      },
+      {
+        Effect: "Allow",
+        Action: ["s3:PutObject"],
+        Resource:
+          "arn:aws:s3:::${self:provider.environment.THUMBNAILS_S3_BUCKET}/*",
       },
     ],
   },
@@ -143,6 +152,26 @@ const serverlessConfiguration: AWS = {
         },
       },
       handler: "src/lambda/s3/sendNotifications.handler",
+      events: [
+        {
+          sns: {
+            arn: {
+              "Fn::Join": [
+                ":",
+                [
+                  "arn:aws:sns",
+                  {
+                    Ref: "AWS::Region",
+                  },
+                  { Ref: "AWS::AccountId" },
+                  "${self:provider.environment.topicName}",
+                ],
+              ],
+            },
+            topicName: "${self:provider.environment.topicName}",
+          },
+        },
+      ],
     },
     ConnectHandler: {
       handler: "src/lambda/websocket/connect.handler",
@@ -164,17 +193,38 @@ const serverlessConfiguration: AWS = {
         },
       ],
     },
-    SyncWithElasticsearch: {
-      environment: {
-        ES_ENDPOINT: { "Fn::GetAtt": ["ImagesSearch", "DomainEndpoint"] },
-      },
-      handler: "src/lambda/dynamoDb/elasticSearchSync.handler",
+    // SyncWithElasticsearch: {
+    //   environment: {
+    //     ES_ENDPOINT: { "Fn::GetAtt": ["ImagesSearch", "DomainEndpoint"] },
+    //   },
+    //   handler: "src/lambda/dynamoDb/elasticSearchSync.handler",
+    //   events: [
+    //     {
+    //       stream: {
+    //         type: "dynamodb",
+    //         arn: { "Fn::GetAtt": ["ImagesDynamoDBTable", "StreamArn"] },
+    //         //arn: "!GetAtt ImagesDynamoDBTable.StreamArn",
+    //       },
+    //     },
+    //   ],
+    // },
+    ResizeImage: {
+      handler: "src/lambda/s3/resizeImage.handler",
       events: [
         {
-          stream: {
-            type: "dynamodb",
-            arn: { "Fn::GetAtt": ["ImagesDynamoDBTable", "StreamArn"] },
-            //arn: "!GetAtt ImagesDynamoDBTable.StreamArn",
+          sns: {
+            arn: {
+              "Fn::Join": [
+                ":",
+                [
+                  "arn:aws:sns",
+                  { Ref: "AWS::Region" },
+                  { Ref: "AWS::AccountId" },
+                  "${self:provider.environment.topicName}",
+                ],
+              ],
+            },
+            topicName: "${self:provider.environment.topicName}",
           },
         },
       ],
@@ -261,18 +311,31 @@ const serverlessConfiguration: AWS = {
       },
       AttachmentsBucket: {
         Type: "AWS::S3::Bucket",
+        DependsOn: ["SNSTopicPolicy"],
         Properties: {
+          AccessControl: "BucketOwnerFullControl",
+
           BucketName: "${self:provider.environment.IMAGES_S3_BUCKET}",
           NotificationConfiguration: {
-            LambdaConfigurations: [
+            // LambdaConfigurations: [
+            //   {
+            //     Event: "s3:ObjectCreated:*",
+            //     Function: {
+            //       "Fn::GetAtt": [
+            //         "SendUploadNotificationsLambdaFunction",
+            //         "Arn",
+            //       ],
+            //     },
+            //   },
+            // ],
+            TopicConfigurations: [
               {
-                Event: "s3:ObjectCreated:*",
-                Function: {
-                  "Fn::GetAtt": [
-                    "SendUploadNotificationsLambdaFunction",
-                    "Arn",
-                  ],
-                },
+                Event: "s3:ObjectCreated:Put",
+                Topic:
+                  // "arn:aws:sns:us-east-1:196302683510:${self:provider.environment.topicName}",
+                  {
+                    Ref: "ImagesTopic",
+                  },
               },
             ],
           },
@@ -314,7 +377,7 @@ const serverlessConfiguration: AWS = {
             Version: "2012-10-17",
             Statement: [
               {
-                Action: "s3:GetObject",
+                Action: ["s3:GetObject", "s3:PutObject"],
                 Effect: "Allow",
                 Principal: "*",
                 Resource:
@@ -324,25 +387,10 @@ const serverlessConfiguration: AWS = {
           },
         },
       },
-      ImagesSearch: {
-        Type: "AWS::Elasticsearch::Domain",
+      SNSTopicPolicy: {
+        Type: "AWS::SNS::TopicPolicy",
         Properties: {
-          ElasticsearchVersion: "6.3",
-          DomainName: "images-search-${self:provider.stage}",
-          ElasticsearchClusterConfig: {
-            DedicatedMasterEnabled: false,
-            InstanceCount: "1",
-            ZoneAwarenessEnabled: "false",
-            InstanceType: "t2.small.elasticsearch",
-          },
-          EBSOptions: {
-            EBSEnabled: true,
-            Iops: 0,
-            VolumeSize: 10,
-            VolumeType: "gp2",
-          },
-
-          AccessPolicies: {
+          PolicyDocument: {
             Version: "2012-10-17",
             Statement: [
               {
@@ -350,21 +398,100 @@ const serverlessConfiguration: AWS = {
                 Principal: {
                   AWS: "*",
                 },
-                Action: "es:ESHttp*",
+                Action: "sns:Publish",
+                Resource: {
+                  Ref: "ImagesTopic",
+                },
                 Condition: {
-                  IpAddress: {
-                    "aws:SourceIp": "<Your-ip>/32",
+                  // ArnLike: {
+                  //   SourceArn:
+                  //     "arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}",
+                  // },
+                  ArnLike: {
+                    "aws:SourceArn": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "${self:provider.environment.IMAGES_S3_BUCKET}",
+                        ],
+                      ],
+                    },
                   },
                 },
-
-                Resource: "*",
-                //Resource:
-                //"!Sub arn:aws:es:${self:provider.region}:${AWS::AccountId}:domain/images-search-${self:provider.stage}/*",
               },
             ],
           },
+          Topics: [
+            {
+              Ref: "ImagesTopic",
+            },
+          ],
         },
       },
+
+      ThumbnailsBucket: {
+        Type: "AWS::S3::Bucket",
+        Properties: {
+          BucketName: "${self:provider.environment.THUMBNAILS_S3_BUCKET}",
+        },
+      },
+
+      ImagesTopic: {
+        Type: "AWS::SNS::Topic",
+        Properties: {
+          DisplayName: "Image bucket topic",
+          TopicName: "${self:provider.environment.topicName}",
+        },
+      },
+      // ImagesSearch: {
+      //   Type: "AWS::Elasticsearch::Domain",
+      //   Properties: {
+      //     ElasticsearchVersion: "6.3",
+      //     DomainName: "images-search-${self:provider.stage}",
+      //     ElasticsearchClusterConfig: {
+      //       DedicatedMasterEnabled: false,
+      //       InstanceCount: "1",
+      //       ZoneAwarenessEnabled: "false",
+      //       InstanceType: "t2.small.elasticsearch",
+      //     },
+      //     EBSOptions: {
+      //       EBSEnabled: true,
+      //       Iops: 0,
+      //       VolumeSize: 10,
+      //       VolumeType: "gp2",
+      //     },
+
+      //     AccessPolicies: {
+      //       Version: "2012-10-17",
+      //       Statement: [
+      //         {
+      //           Effect: "Allow",
+      //           Principal: {
+      //             AWS: "*",
+      //           },
+      //           Action: "es:ESHttp*",
+      //           Condition: {
+      //             IpAddress: {
+      //               "aws:SourceIp": ["Your-Ip"],
+      //             },
+      //           },
+
+      //           Resource: "*",
+      //         },
+      //         {
+      //           Effect: "Allow",
+      //           Principal: {
+      //             AWS: "arn:aws:sts::557831573860:assumed-role/serverless-udagram-app-dev-us-east-1-lambdaRole/serverless-udagram-app-dev-SyncWithElasticsearch",
+      //
+      //           },
+      //           Action: "es:*",
+      //           Resource: "*",
+      //         },
+      //       ],
+      //     },
+      //   },
+      // },
     },
   },
 }
