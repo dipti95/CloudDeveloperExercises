@@ -1,7 +1,7 @@
-import * as React from 'react'
-import { Form, Button } from 'semantic-ui-react'
-import { createGroup } from '../api/groups-api'
-import Auth from '../auth/Auth'
+import * as React from "react"
+import { Form, Button } from "semantic-ui-react"
+import { createGroup } from "../api/groups-api"
+import Auth from "../auth/Auth"
 
 interface CreateGroupProps {
   auth: Auth
@@ -18,9 +18,9 @@ export class CreateGroup extends React.PureComponent<
   CreateGroupState
 > {
   state: CreateGroupState = {
-    name: '',
-    description: '',
-    uploadingGroup: false
+    name: "",
+    description: "",
+    uploadingGroup: false,
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,21 +36,25 @@ export class CreateGroup extends React.PureComponent<
 
     try {
       if (!this.state.name || !this.state.description) {
-        alert('Name and description should be provided')
+        alert("Name and description should be provided")
         return
       }
 
       this.setUploadState(true)
       const group = await createGroup(this.props.auth.getIdToken(), {
         name: this.state.name,
-        description: this.state.description
+        description: this.state.description,
       })
 
-      console.log('Created description', group)
+      console.log("Created description", group)
 
-      alert('Group was created!')
+      alert("Group was created!")
     } catch (e) {
-      alert('Could not upload an image: ' + e.message)
+      let errorMessage = "Could not upload an image:"
+      if (e instanceof Error) {
+        errorMessage = e.message
+        alert(` Could not upload an image:${errorMessage}`)
+      }
     } finally {
       this.setUploadState(false)
     }
@@ -58,7 +62,7 @@ export class CreateGroup extends React.PureComponent<
 
   setUploadState(uploadingGroup: boolean) {
     this.setState({
-      uploadingGroup
+      uploadingGroup,
     })
   }
 

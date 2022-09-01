@@ -1,7 +1,7 @@
-import * as React from 'react'
-import { Form, Button } from 'semantic-ui-react'
-import { createImage, uploadFile } from '../api/images-api'
-import Auth from '../auth/Auth'
+import * as React from "react"
+import { Form, Button } from "semantic-ui-react"
+import { createImage, uploadFile } from "../api/images-api"
+import Auth from "../auth/Auth"
 
 enum UploadState {
   NoUpload,
@@ -29,9 +29,9 @@ export class CreateImage extends React.PureComponent<
   CreateImageState
 > {
   state: CreateImageState = {
-    title: '',
+    title: "",
     file: undefined,
-    uploadState: UploadState.NoUpload
+    uploadState: UploadState.NoUpload,
   }
 
   handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,9 +42,9 @@ export class CreateImage extends React.PureComponent<
     const files = event.target.files
     if (!files) return
 
-    console.log('File change', files)
+    console.log("File change", files)
     this.setState({
-      file: files[0]
+      file: files[0],
     })
   }
 
@@ -53,24 +53,28 @@ export class CreateImage extends React.PureComponent<
 
     try {
       if (!this.state.file) {
-        alert('File should be selected')
+        alert("File should be selected")
         return
       }
 
       this.setUploadState(UploadState.UploadingData)
       const uploadInfo = await createImage(this.props.auth.getIdToken(), {
         groupId: this.props.match.params.groupId,
-        title: this.state.title
+        title: this.state.title,
       })
 
-      console.log('Created image', uploadInfo)
+      console.log("Created image", uploadInfo)
 
       this.setUploadState(UploadState.UploadingFile)
       await uploadFile(uploadInfo.uploadUrl, this.state.file)
 
-      alert('Image was uploaded!')
+      alert("Image was uploaded!")
     } catch (e) {
-      alert('Could not upload an image: ' + e.message)
+      let errorMessage = "Could not upload an image:"
+      if (e instanceof Error) {
+        errorMessage = e.message
+        alert(` Could not upload an image:${errorMessage}`)
+      }
     } finally {
       this.setUploadState(UploadState.NoUpload)
     }
@@ -78,7 +82,7 @@ export class CreateImage extends React.PureComponent<
 
   setUploadState(uploadState: UploadState) {
     this.setState({
-      uploadState
+      uploadState,
     })
   }
 
@@ -113,11 +117,14 @@ export class CreateImage extends React.PureComponent<
   }
 
   renderButton() {
-
     return (
       <div>
-        {this.state.uploadState === UploadState.UploadingData && <p>Uploading image metadata</p>}
-        {this.state.uploadState === UploadState.UploadingFile && <p>Uploading file</p>}
+        {this.state.uploadState === UploadState.UploadingData && (
+          <p>Uploading image metadata</p>
+        )}
+        {this.state.uploadState === UploadState.UploadingFile && (
+          <p>Uploading file</p>
+        )}
         <Button
           loading={this.state.uploadState !== UploadState.NoUpload}
           type="submit"

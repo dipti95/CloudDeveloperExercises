@@ -1,9 +1,9 @@
-import * as React from 'react'
-import { ImageModel } from '../types/ImageModel'
-import { getImages } from '../api/images-api'
-import { Card, Divider, Button } from 'semantic-ui-react'
-import { UdagramImage } from './UdagramImage'
-import { History } from 'history'
+import * as React from "react"
+import { ImageModel } from "../types/ImageModel"
+import { getImages } from "../api/images-api"
+import { Card, Divider, Button } from "semantic-ui-react"
+import { UdagramImage } from "./UdagramImage"
+import { History } from "history"
 
 interface ImagesListProps {
   history: History
@@ -23,7 +23,7 @@ export class ImagesList extends React.PureComponent<
   ImagesListState
 > {
   state: ImagesListState = {
-    images: []
+    images: [],
   }
 
   handleCreateImage = () => {
@@ -34,10 +34,14 @@ export class ImagesList extends React.PureComponent<
     try {
       const images = await getImages(this.props.match.params.groupId)
       this.setState({
-        images
+        images,
       })
     } catch (e) {
-      alert(`Failed to fetch images for group : ${e.message}`)
+      let errorMessage = "Failed to fetch groups:"
+      if (e instanceof Error) {
+        errorMessage = e.message
+        alert(` Failed to fetch groups:${errorMessage}`)
+      }
     }
   }
 
@@ -58,7 +62,7 @@ export class ImagesList extends React.PureComponent<
         <Divider clearing />
 
         <Card.Group>
-          {this.state.images.map(image => {
+          {this.state.images.map((image) => {
             return <UdagramImage key={image.imageId} image={image} />
           })}
         </Card.Group>

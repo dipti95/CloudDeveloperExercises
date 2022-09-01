@@ -1,9 +1,9 @@
-import * as React from 'react'
-import { GroupModel } from '../types/GroupModel'
-import { Group } from './Group'
-import { getGroups } from '../api/groups-api'
-import { Card, Button, Divider } from 'semantic-ui-react'
-import { History } from 'history'
+import * as React from "react"
+import { GroupModel } from "../types/GroupModel"
+import { Group } from "./Group"
+import { getGroups } from "../api/groups-api"
+import { Card, Button, Divider } from "semantic-ui-react"
+import { History } from "history"
 
 interface GroupsListProps {
   history: History
@@ -13,9 +13,12 @@ interface GroupsListState {
   groups: GroupModel[]
 }
 
-export class GroupsList extends React.PureComponent<GroupsListProps, GroupsListState> {
+export class GroupsList extends React.PureComponent<
+  GroupsListProps,
+  GroupsListState
+> {
   state: GroupsListState = {
-    groups: []
+    groups: [],
   }
 
   handleCreateGroup = () => {
@@ -26,10 +29,14 @@ export class GroupsList extends React.PureComponent<GroupsListProps, GroupsListS
     try {
       const groups = await getGroups()
       this.setState({
-        groups
+        groups,
       })
     } catch (e) {
-      alert(`Failed to fetch groups: ${e.message}`)
+      let errorMessage = "Failed to fetch groups:"
+      if (e instanceof Error) {
+        errorMessage = e.message
+        alert(` Failed to fetch groups:${errorMessage}`)
+      }
     }
   }
 
@@ -50,7 +57,7 @@ export class GroupsList extends React.PureComponent<GroupsListProps, GroupsListS
         <Divider clearing />
 
         <Card.Group>
-          {this.state.groups.map(group => {
+          {this.state.groups.map((group) => {
             return <Group key={group.id} group={group} />
           })}
         </Card.Group>
