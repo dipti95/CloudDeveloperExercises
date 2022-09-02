@@ -1,12 +1,12 @@
-import React, { Component } from 'react'
-import { GroupsList } from './components/GroupsList'
-import { Router, Link, Route, Switch } from 'react-router-dom'
-import { Grid, Menu, Segment } from 'semantic-ui-react'
-import { ImagesList } from './components/ImagesList'
-import { NotFound } from './components/NotFound'
-import { CreateImage } from './components/CreateImage'
-import { CreateGroup } from './components/CreateGroup'
-import Auth from './auth/Auth'
+import React, { Component } from "react"
+import { GroupsList } from "./components/GroupsList"
+import { Router, Link, Route, Switch } from "react-router-dom"
+import { Grid, Menu, Segment } from "semantic-ui-react"
+import { ImagesList } from "./components/ImagesList"
+import { NotFound } from "./components/NotFound"
+import { CreateImage } from "./components/CreateImage"
+import { CreateGroup } from "./components/CreateGroup"
+import Auth from "./auth/Auth"
 
 export interface AppProps {}
 
@@ -36,7 +36,7 @@ export default class App extends Component<AppProps, AppState> {
   render() {
     return (
       <div>
-        <Segment style={{ padding: '8em 0em' }} vertical>
+        <Segment style={{ padding: "8em 0em" }} vertical>
           <Grid container stackable verticalAlign="middle">
             <Grid.Row>
               <Grid.Column width={16}>
@@ -87,7 +87,7 @@ export default class App extends Component<AppProps, AppState> {
         <Route
           path="/groups/create"
           exact
-          render={props => {
+          render={(props) => {
             return <CreateGroup {...props} auth={this.props.auth} />
           }}
         />
@@ -97,7 +97,7 @@ export default class App extends Component<AppProps, AppState> {
         <Route
           path="/images/:groupId/create"
           exact
-          render={props => {
+          render={(props) => {
             return <CreateImage {...props} auth={this.props.auth} />
           }}
         />

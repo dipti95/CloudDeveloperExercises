@@ -6,6 +6,11 @@ import Callback from "./components/Callback"
 import App from "./App"
 const history = require("history").createBrowserHistory()
 
+// import { createBrowserHistory, History } from "history"
+// import App from "./App"
+
+// const history: History = createBrowserHistory()
+
 const auth = new Auth(history)
 
 const handleAuthentication = (props: any) => {
@@ -23,6 +28,7 @@ export const makeAuthRouting = () => {
           path="/callback"
           render={(props) => {
             handleAuthentication(props)
+            console.log(Callback)
             return <Callback />
           }}
         />
