@@ -82,6 +82,7 @@ export default class App extends Component<AppProps, AppState> {
   }
 
   generateCurrentPage() {
+    console.log(this.props.history)
     return (
       <Switch>
         <Route

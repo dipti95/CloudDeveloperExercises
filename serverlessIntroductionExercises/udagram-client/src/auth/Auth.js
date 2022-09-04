@@ -64,11 +64,9 @@ export default class Auth {
     this.idToken = authResult.idToken
     this.expiresAt = expiresAt
 
-    console.log("sfgdhfnj")
-
     // navigate to the home route
+
     this.history.replace("/")
-    console.log("sdfghfg")
   }
 
   renewSession() {
@@ -99,6 +97,7 @@ export default class Auth {
     })
 
     // navigate to the home route
+
     this.history.replace("/")
   }
 
