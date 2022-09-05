@@ -86,6 +86,9 @@ const serverlessConfiguration: AWS = {
   },
 
   functions: {
+    RS256Auth: {
+      handler: "src/lambda/auth/rs256Auth0Authorizer.handler",
+    },
     Auth: {
       handler: "src/lambda/auth/auth0Authorizer.handler",
     },
@@ -110,7 +113,7 @@ const serverlessConfiguration: AWS = {
             method: "post",
             path: "groups",
             cors: true,
-            authorizer: "Auth",
+            authorizer: "RS256Auth",
             request: {
               schemas: {
                 "application/json": "${file(models/create-group-request.json)}",
@@ -158,7 +161,7 @@ const serverlessConfiguration: AWS = {
             method: "post",
             path: "/groups/{groupId}/images",
             cors: true,
-            authorizer: "Auth",
+            authorizer: "RS256Auth",
             request: {
               schemas: {
                 "application/json": "${file(models/create-image-request.json)}",
