@@ -3,7 +3,13 @@ import type { AWS } from "@serverless/typescript"
 const serverlessConfiguration: AWS = {
   service: "serverless-udagram-app",
   frameworkVersion: "3",
-  plugins: ["serverless-esbuild"],
+  plugins: [
+    "serverless-esbuild",
+    "serverless-reqvalidator-plugin",
+    "serverless-aws-documentation",
+    "serverless-dynamodb-local",
+    "serverless-offline",
+  ],
   provider: {
     name: "aws",
     runtime: "nodejs14.x",
@@ -83,6 +89,22 @@ const serverlessConfiguration: AWS = {
         Resource: { "Fn::GetAtt": ["KMSKey", "Arn"] },
       },
     ],
+  },
+
+  custom: {
+    "serverless-offline": {
+      port: 3003,
+    },
+
+    dynamodb: {
+      start: {
+        port: 8000,
+        inMemeory: true,
+        shell: true,
+        migrate: true,
+      },
+      stages: ["dev"],
+    },
   },
 
   functions: {
