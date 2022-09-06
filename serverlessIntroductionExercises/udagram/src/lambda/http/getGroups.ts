@@ -5,24 +5,14 @@ import {
 } from "aws-lambda"
 
 import "source-map-support/register"
-
-import * as AWS from "aws-sdk"
-
-const docClient = new AWS.DynamoDB.DocumentClient()
-
-const groupsTable = process.env.GROUPS_TABLE
+import { getAllGroups } from "../../businessLogic/groups"
 
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  console.log("Caller event", event)
+  console.log("Processing event: ", event)
 
-  const result = await docClient
-    .scan({
-      TableName: groupsTable,
-    })
-    .promise()
-  const items = result.Items
+  const groups = await getAllGroups()
 
   return {
     statusCode: 200,
@@ -32,7 +22,7 @@ export const handler: APIGatewayProxyHandler = async (
       "Access-Control-Allow-Credentials": true,
     },
     body: JSON.stringify({
-      items: items,
+      items: groups,
     }),
   }
 }
